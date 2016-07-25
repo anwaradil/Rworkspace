@@ -30,7 +30,10 @@ df1<-data.frame(dataset1$FNAME,dataset1$LNAME,fullname1=paste(dataset1$FNAME,dat
 
 df2<-data.frame(dataset2$FNAME,dataset2$LNAME,fullname2=paste(dataset2$FNAME,dataset2$LNAME))
 
+#DF1
 df1
+
+#DF2
 df2
 
 
@@ -52,12 +55,12 @@ trim<- function (x) {
 
 
 #df1$pfullName1<-trim((df1$fullname1)) - Call Trim function from here . This is commented out for now.
-df1$fullname1
+
 df1$NamePhonetic<-phonetic(df1$fullname1,method=c("soundex"),useBytes=FALSE)
 
 
 #df2$pfullName2<-trim(df2$fullname2)
-df2$fullname2
+
 df2$NamePhonetic<-phonetic(df2$fullname2,method=c("soundex"),useBytes=FALSE)
 namematchdf<-merge(df1,df2,by="NamePhonetic",all=TRUE)
 
@@ -71,9 +74,12 @@ namematchdf<- createDataFrame(sqlContext, namematchdf)
 #Query
 perfectScore <- filter(namematchdf, namematchdf$namesimscore == 1)
 
+#perfect score
 head(perfectScore)
 
+#arrangement in Descending order
 head(arrange(namematchdf, desc(namematchdf$namesimscore)))
 
 
 sparkR.stop()
+#END

@@ -1,0 +1,220 @@
+> setwd('/Users/aadil/desktop/Rworkspace')
+> # Set the system environment variables
+> Sys.setenv(SPARK_HOME = "/Users/aadil/spark-1.6.2-bin-hadoop2.6")
+> .libPaths(c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib"), .libPaths()))
+> #load the Sparkr library
+> library(SparkR)
+> library(RecordLinkage)
+> library(data.table)
+> library(stringdist)
+> # Create a spark context and a SQL context
+> sc <- sparkR.init(master = "local")
+Launching java with spark-submit command /Users/aadil/spark-1.6.2-bin-hadoop2.6/bin/spark-submit   sparkr-shell /var/folders/43/8qsnk9j16_n0m63mlhm0z_8r0000gp/T//RtmpnR5bvX/backend_port1836e2215f1 
+log4j:WARN No appenders could be found for logger (io.netty.util.internal.logging.InternalLoggerFactory).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties
+16/07/25 12:37:44 INFO SparkContext: Running Spark version 1.6.2
+16/07/25 12:37:45 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+16/07/25 12:37:45 INFO SecurityManager: Changing view acls to: aadil
+16/07/25 12:37:45 INFO SecurityManager: Changing modify acls to: aadil
+16/07/25 12:37:45 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(aadil); users with modify permissions: Set(aadil)
+16/07/25 12:37:45 INFO Utils: Successfully started service 'sparkDriver' on port 61571.
+16/07/25 12:37:45 INFO Slf4jLogger: Slf4jLogger started
+16/07/25 12:37:45 INFO Remoting: Starting remoting
+16/07/25 12:37:46 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkDriverActorSystem@172.30.1.39:61575]
+16/07/25 12:37:46 INFO Utils: Successfully started service 'sparkDriverActorSystem' on port 61575.
+16/07/25 12:37:46 INFO SparkEnv: Registering MapOutputTracker
+16/07/25 12:37:46 INFO SparkEnv: Registering BlockManagerMaster
+16/07/25 12:37:46 INFO DiskBlockManager: Created local directory at /private/var/folders/43/8qsnk9j16_n0m63mlhm0z_8r0000gp/T/blockmgr-1def1381-bde1-4ec3-886f-d6eb8793cfcb
+16/07/25 12:37:46 INFO MemoryStore: MemoryStore started with capacity 511.5 MB
+16/07/25 12:37:46 INFO SparkEnv: Registering OutputCommitCoordinator
+16/07/25 12:37:46 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+16/07/25 12:37:46 INFO SparkUI: Started SparkUI at http://172.30.1.39:4040
+16/07/25 12:37:46 INFO Executor: Starting executor ID driver on host localhost
+16/07/25 12:37:46 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 61585.
+16/07/25 12:37:46 INFO NettyBlockTransferService: Server created on 61585
+16/07/25 12:37:46 INFO BlockManagerMaster: Trying to register BlockManager
+16/07/25 12:37:46 INFO BlockManagerMasterEndpoint: Registering block manager localhost:61585 with 511.5 MB RAM, BlockManagerId(driver, localhost, 61585)
+16/07/25 12:37:46 INFO BlockManagerMaster: Registered BlockManager
+> sqlContext <- sparkRSQL.init(sc)
+> 
+> #*********************************************** Dataset Preparation ********************************************************************************
+> 
+> dataset1<-read.csv(file.choose(), header=FALSE,colClasses="character",as.is=TRUE,na.strings=NULL,sep="\t")
+> #dataset1
+> 
+> dataset2<-read.csv(file.choose(), header=FALSE,colClasses="character",as.is =TRUE,na.strings=NULL,sep="\t")
+Warning message:
+In read.table(file = file, header = header, sep = sep, quote = quote,  :
+  incomplete final line found by readTableHeader on '/Users/aadil/Desktop/Rworkspace/name2.csv'
+> dataset2
+      V1       V2
+1 Tamara    Holly
+2    Sam Bhagwant
+3 Steven Pitsburg
+> 
+> #dataset2
+> 
+> names(dataset1)<-c("FNAME","LNAME")
+> names(dataset2)<-c("FNAME","LNAME")
+> 
+> 
+> 
+> df1<-data.frame(dataset1$FNAME,dataset1$LNAME,fullname1=paste(dataset1$FNAME,dataset1$LNAME))
+> 
+> df2<-data.frame(dataset2$FNAME,dataset2$LNAME,fullname2=paste(dataset2$FNAME,dataset2$LNAME))
+> 
+> #DF1
+> df1
+  dataset1.FNAME dataset1.LNAME         fullname1
+1         Tamara          Holly      Tamara Holly
+2            Sam      Bhagwanth     Sam Bhagwanth
+3         Steven     Pittsburgh Steven Pittsburgh
+> 
+> #DF2
+> df2
+  dataset2.FNAME dataset2.LNAME       fullname2
+1         Tamara          Holly    Tamara Holly
+2            Sam       Bhagwant    Sam Bhagwant
+3         Steven       Pitsburg Steven Pitsburg
+> 
+> 
+> # use trim function if you need to standardize the data
+> trim<- function (x) {
++   x<- tolower(x)
++   x<- gsub("^\\s+\\s+$","", x)
++   x<-gsub("\\s+"," ",x)
++   x<- gsub("[[:punct:]]", " ", x)
++   x<-gsub("\\s+"," ",x)
++   x<- gsub("street", "st", x)
++   x<- gsub("drive", "dr", x)
++   x<- gsub("suite","ste",x)
++   x<- gsub("building","bldg",x)
++   x<- gsub(" $","",x)
++   
++ }
+> 
+> 
+> 
+> #df1$pfullName1<-trim((df1$fullname1)) - Call Trim function from here . This is commented out for now.
+> 
+> df1$NamePhonetic<-phonetic(df1$fullname1,method=c("soundex"),useBytes=FALSE)
+> 
+> 
+> #df2$pfullName2<-trim(df2$fullname2)
+> 
+> df2$NamePhonetic<-phonetic(df2$fullname2,method=c("soundex"),useBytes=FALSE)
+> namematchdf<-merge(df1,df2,by="NamePhonetic",all=TRUE)
+> 
+> #Sys.setlocale('LC_ALL','C')
+> namematchdf <- data.frame(lapply(namematchdf, as.character), stringsAsFactors=FALSE)
+> #is.character(namematchdf$dataset1.FNAME)
+> namematchdf$namesimscore<-levenshteinSim(namematchdf$fullname1,namematchdf$fullname2)
+> #write.table(namematchdf,file="test.txt",col.names=TRUE,quote=FALSE,sep="\t")
+> namematchdf<- createDataFrame(sqlContext, namematchdf)
+16/07/25 12:37:52 INFO SparkContext: Starting job: collectPartitions at NativeMethodAccessorImpl.java:-2
+16/07/25 12:37:52 INFO DAGScheduler: Got job 0 (collectPartitions at NativeMethodAccessorImpl.java:-2) with 1 output partitions
+16/07/25 12:37:52 INFO DAGScheduler: Final stage: ResultStage 0 (collectPartitions at NativeMethodAccessorImpl.java:-2)
+16/07/25 12:37:52 INFO DAGScheduler: Parents of final stage: List()
+16/07/25 12:37:52 INFO DAGScheduler: Missing parents: List()
+16/07/25 12:37:52 INFO DAGScheduler: Submitting ResultStage 0 (ParallelCollectionRDD[0] at parallelize at RRDD.scala:460), which has no missing parents
+16/07/25 12:37:52 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 1280.0 B, free 1280.0 B)
+16/07/25 12:37:52 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 854.0 B, free 2.1 KB)
+16/07/25 12:37:52 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on localhost:61585 (size: 854.0 B, free: 511.5 MB)
+16/07/25 12:37:52 INFO SparkContext: Created broadcast 0 from broadcast at DAGScheduler.scala:1006
+16/07/25 12:37:52 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 0 (ParallelCollectionRDD[0] at parallelize at RRDD.scala:460)
+16/07/25 12:37:52 INFO TaskSchedulerImpl: Adding task set 0.0 with 1 tasks
+16/07/25 12:37:52 INFO TaskSetManager: Starting task 0.0 in stage 0.0 (TID 0, localhost, partition 0,PROCESS_LOCAL, 2672 bytes)
+16/07/25 12:37:52 INFO Executor: Running task 0.0 in stage 0.0 (TID 0)
+16/07/25 12:37:52 INFO Executor: Finished task 0.0 in stage 0.0 (TID 0). 1523 bytes result sent to driver
+16/07/25 12:37:52 INFO TaskSetManager: Finished task 0.0 in stage 0.0 (TID 0) in 81 ms on localhost (1/1)
+16/07/25 12:37:52 INFO TaskSchedulerImpl: Removed TaskSet 0.0, whose tasks have all completed, from pool 
+16/07/25 12:37:52 INFO DAGScheduler: ResultStage 0 (collectPartitions at NativeMethodAccessorImpl.java:-2) finished in 0.099 s
+16/07/25 12:37:52 INFO DAGScheduler: Job 0 finished: collectPartitions at NativeMethodAccessorImpl.java:-2, took 0.283524 s
+Warning messages:
+1: In FUN(X[[i]], ...) :
+  Use dataset1_FNAME instead of dataset1.FNAME  as column name
+2: In FUN(X[[i]], ...) :
+  Use dataset1_LNAME instead of dataset1.LNAME  as column name
+3: In FUN(X[[i]], ...) :
+  Use dataset2_FNAME instead of dataset2.FNAME  as column name
+4: In FUN(X[[i]], ...) :
+  Use dataset2_LNAME instead of dataset2.LNAME  as column name
+> 
+> #Query
+> perfectScore <- filter(namematchdf, namematchdf$namesimscore == 1)
+> 
+> #perfect score
+> head(perfectScore)
+16/07/25 12:37:53 INFO SparkContext: Starting job: dfToCols at NativeMethodAccessorImpl.java:-2
+16/07/25 12:37:53 INFO DAGScheduler: Got job 1 (dfToCols at NativeMethodAccessorImpl.java:-2) with 1 output partitions
+16/07/25 12:37:53 INFO DAGScheduler: Final stage: ResultStage 1 (dfToCols at NativeMethodAccessorImpl.java:-2)
+16/07/25 12:37:53 INFO DAGScheduler: Parents of final stage: List()
+16/07/25 12:37:53 INFO DAGScheduler: Missing parents: List()
+16/07/25 12:37:53 INFO DAGScheduler: Submitting ResultStage 1 (MapPartitionsRDD[5] at dfToCols at NativeMethodAccessorImpl.java:-2), which has no missing parents
+16/07/25 12:37:53 INFO MemoryStore: Block broadcast_1 stored as values in memory (estimated size 12.3 KB, free 14.3 KB)
+16/07/25 12:37:53 INFO MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 5.2 KB, free 19.5 KB)
+16/07/25 12:37:53 INFO BlockManagerInfo: Added broadcast_1_piece0 in memory on localhost:61585 (size: 5.2 KB, free: 511.5 MB)
+16/07/25 12:37:53 INFO SparkContext: Created broadcast 1 from broadcast at DAGScheduler.scala:1006
+16/07/25 12:37:53 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 1 (MapPartitionsRDD[5] at dfToCols at NativeMethodAccessorImpl.java:-2)
+16/07/25 12:37:53 INFO TaskSchedulerImpl: Adding task set 1.0 with 1 tasks
+16/07/25 12:37:53 INFO TaskSetManager: Starting task 0.0 in stage 1.0 (TID 1, localhost, partition 0,PROCESS_LOCAL, 2672 bytes)
+16/07/25 12:37:53 INFO Executor: Running task 0.0 in stage 1.0 (TID 1)
+16/07/25 12:37:54 INFO GeneratePredicate: Code generated in 112.007 ms
+16/07/25 12:37:54 INFO RRDD: Times: boot = 0.676 s, init = 0.008 s, broadcast = 0.000 s, read-input = 0.001 s, compute = 0.001 s, write-output = 0.005 s, total = 0.691 s
+16/07/25 12:37:54 INFO Executor: Finished task 0.0 in stage 1.0 (TID 1). 1633 bytes result sent to driver
+16/07/25 12:37:54 INFO TaskSetManager: Finished task 0.0 in stage 1.0 (TID 1) in 860 ms on localhost (1/1)
+16/07/25 12:37:54 INFO TaskSchedulerImpl: Removed TaskSet 1.0, whose tasks have all completed, from pool 
+16/07/25 12:37:54 INFO DAGScheduler: ResultStage 1 (dfToCols at NativeMethodAccessorImpl.java:-2) finished in 0.863 s
+16/07/25 12:37:54 INFO DAGScheduler: Job 1 finished: dfToCols at NativeMethodAccessorImpl.java:-2, took 0.901109 s
+  NamePhonetic dataset1_FNAME dataset1_LNAME    fullname1 dataset2_FNAME dataset2_LNAME
+1         T564         Tamara          Holly Tamara Holly         Tamara          Holly
+     fullname2 namesimscore
+1 Tamara Holly            1
+> 
+> #arrangement in Descending order
+> head(arrange(namematchdf, desc(namematchdf$namesimscore)))
+16/07/25 12:37:54 INFO SparkContext: Starting job: dfToCols at NativeMethodAccessorImpl.java:-2
+16/07/25 12:37:54 INFO DAGScheduler: Got job 2 (dfToCols at NativeMethodAccessorImpl.java:-2) with 1 output partitions
+16/07/25 12:37:54 INFO DAGScheduler: Final stage: ResultStage 2 (dfToCols at NativeMethodAccessorImpl.java:-2)
+16/07/25 12:37:54 INFO DAGScheduler: Parents of final stage: List()
+16/07/25 12:37:54 INFO DAGScheduler: Missing parents: List()
+16/07/25 12:37:54 INFO DAGScheduler: Submitting ResultStage 2 (MapPartitionsRDD[7] at dfToCols at NativeMethodAccessorImpl.java:-2), which has no missing parents
+16/07/25 12:37:54 INFO MemoryStore: Block broadcast_2 stored as values in memory (estimated size 10.4 KB, free 29.9 KB)
+16/07/25 12:37:54 INFO MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 4.3 KB, free 34.2 KB)
+16/07/25 12:37:54 INFO BlockManagerInfo: Added broadcast_2_piece0 in memory on localhost:61585 (size: 4.3 KB, free: 511.5 MB)
+16/07/25 12:37:54 INFO SparkContext: Created broadcast 2 from broadcast at DAGScheduler.scala:1006
+16/07/25 12:37:54 INFO DAGScheduler: Submitting 1 missing tasks from ResultStage 2 (MapPartitionsRDD[7] at dfToCols at NativeMethodAccessorImpl.java:-2)
+16/07/25 12:37:54 INFO TaskSchedulerImpl: Adding task set 2.0 with 1 tasks
+16/07/25 12:37:54 INFO TaskSetManager: Starting task 0.0 in stage 2.0 (TID 2, localhost, partition 0,PROCESS_LOCAL, 2672 bytes)
+16/07/25 12:37:54 INFO Executor: Running task 0.0 in stage 2.0 (TID 2)
+16/07/25 12:37:54 INFO RRDD: Times: boot = 0.011 s, init = 0.006 s, broadcast = 0.000 s, read-input = 0.000 s, compute = 0.002 s, write-output = 0.006 s, total = 0.025 s
+16/07/25 12:37:54 INFO Executor: Finished task 0.0 in stage 2.0 (TID 2). 2801 bytes result sent to driver
+16/07/25 12:37:54 INFO TaskSetManager: Finished task 0.0 in stage 2.0 (TID 2) in 62 ms on localhost (1/1)
+16/07/25 12:37:54 INFO DAGScheduler: ResultStage 2 (dfToCols at NativeMethodAccessorImpl.java:-2) finished in 0.062 s
+16/07/25 12:37:54 INFO TaskSchedulerImpl: Removed TaskSet 2.0, whose tasks have all completed, from pool 
+16/07/25 12:37:54 INFO DAGScheduler: Job 2 finished: dfToCols at NativeMethodAccessorImpl.java:-2, took 0.078031 s
+  NamePhonetic dataset1_FNAME dataset1_LNAME         fullname1 dataset2_FNAME dataset2_LNAME
+1         T564         Tamara          Holly      Tamara Holly         Tamara          Holly
+2         S512            Sam      Bhagwanth     Sam Bhagwanth            Sam       Bhagwant
+3         S315         Steven     Pittsburgh Steven Pittsburgh         Steven       Pitsburg
+        fullname2 namesimscore
+1    Tamara Holly    1.0000000
+2    Sam Bhagwant    0.9230769
+3 Steven Pitsburg    0.8823529
+> 
+> 
+> sparkR.stop()
+16/07/25 12:37:54 INFO SparkUI: Stopped Spark web UI at http://172.30.1.39:4040
+16/07/25 12:37:54 INFO MapOutputTrackerMasterEndpoint: MapOutputTrackerMasterEndpoint stopped!
+16/07/25 12:37:54 INFO MemoryStore: MemoryStore cleared
+16/07/25 12:37:54 INFO BlockManager: BlockManager stopped
+16/07/25 12:37:54 INFO BlockManagerMaster: BlockManagerMaster stopped
+16/07/25 12:37:54 INFO OutputCommitCoordinator$OutputCommitCoordinatorEndpoint: OutputCommitCoordinator stopped!
+16/07/25 12:37:54 INFO SparkContext: Successfully stopped SparkContext
+> #END
+16/07/25 12:37:54 INFO RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+16/07/25 12:37:54 INFO ShutdownHookManager: Shutdown hook called
+16/07/25 12:37:54 INFO RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+16/07/25 12:37:54 INFO ShutdownHookManager: Deleting directory /private/var/folders/43/8qsnk9j16_n0m63mlhm0z_8r0000gp/T/spark-5b5c2310-46de-4d88-8119-30e9d5a1f1c0
